@@ -2,7 +2,7 @@ import chardet
 from lxml import etree
 import requests
 from requests.cookies import cookiejar_from_dict
-from typing import Union, Dict
+from typing import Union, Dict, Optional
 from KaUtil.Client.setting import BASE_HEADER
 import pymysql
 from pymysql.cursors import SSCursor
@@ -17,7 +17,7 @@ class Request(object):
         self.timeout = timeout
         self.args = args
         self.kwargs = kwargs
-        self.session = kwargs.setdefault('session', requests.Session())
+        self.session = kwargs.setdefault('session', None)
         self._response = None
 
     def set_session(self, **kwargs):
@@ -46,8 +46,8 @@ class Request(object):
             'GET': _requests.get,
             'POST': _requests.post,
         }
-        _headers: Union[Dict[str, str], None] = self.kwargs.get('headers')
-        _cookies: Union[Dict[str, str], None] = self.kwargs.get('cookies')
+        _headers: Optional[Dict[str, str]] = self.kwargs.get('headers')
+        _cookies: Optional[Dict[str, str]] = self.kwargs.get('cookies')
 
         if 'session' in self.kwargs:
             self.kwargs.pop('session')
