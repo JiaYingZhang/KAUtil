@@ -1,6 +1,6 @@
 from enum import Enum
 from KaUtil.Client import Request
-from typing import Type, List, Tuple
+from typing import Type, List, Tuple, Dict
 from urllib.parse import urljoin
 import re
 
@@ -14,6 +14,15 @@ def is_url(url: str):
         r'(?::\d+)?'
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return re.match(regex, url)
+
+
+def url_query_to_dict(query: str):
+    query_list: List[str] = query.split('&')
+    data: Dict[str, str] = {}
+    for q in query_list:
+        key, value = q.split('=')
+        data[key] = value
+    return data
 
 
 class Extract(object):
@@ -37,10 +46,10 @@ class Extract(object):
 
     @classmethod
     def filter_space_char(cls, text: str, replace_char: str = ''):
-        space_char: List[str] = ['\n', '\r', ' ']
+        space_char: List[str] = ['\n', '\r', '\t']
         for char in space_char:
             text = text.replace(char, replace_char)
-        return text
+        return text.strip()
 
     @classmethod
     def extract_content(cls, request: Type[Request]):
