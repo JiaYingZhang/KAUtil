@@ -6,6 +6,7 @@ from typing import Union, Dict, Optional
 from KaUtil.Client.setting import BASE_HEADER
 import pymysql
 from pymysql.cursors import SSCursor
+from readability import Document
 
 __all__ = ['Request', 'MySqlClient']
 
@@ -18,6 +19,7 @@ class Request(object):
         self.args = args
         self.kwargs = kwargs
         self.session = kwargs.setdefault('session', None)
+        self._doc = None
         self._response = None
 
     def set_session(self, **kwargs):
@@ -102,6 +104,21 @@ class Request(object):
             return etree.HTML(text)
         except:
             return None
+
+    @property
+    def doc(self):
+        if not self._doc:
+            self._doc = Document(self.response)
+        return self._doc
+
+    @property
+    def doc_title(self) -> str:
+        return self.doc.title()
+
+    @property
+    def doc_summary(self) -> str:
+        content = etree.fromstring(self.doc.summary())
+        return ''.join(content.xpath('//text()'))
 
     def __enter__(self):
         return self
