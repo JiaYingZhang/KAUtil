@@ -7,8 +7,17 @@ from KaUtil.Client.setting import BASE_HEADER
 import pymysql
 from pymysql.cursors import SSCursor
 from readability import Document
+import io
+from traceback import print_exc
+import json
 
 __all__ = ['Request', 'MySqlClient']
+
+
+class RequestException(Exception):
+    def __init__(self, error: str, status_code: int=500):
+        self.status_code = status_code
+        self.error = error
 
 
 class Request(object):
@@ -63,23 +72,38 @@ class Request(object):
                 self.url, timeout=self.timeout, *self.args, **self.kwargs)
             if 'Connection' in response.headers.keys():
                 del response.headers['Connection']
+            if response.status_code != 200:
+                raise RequestException(error=response.text, status_code=response.status_code)
         except Exception as e:
-            print(e)
-            response = self.err_response()
+            response = self.err_response(text=self._error_format())
         response = self.html_code(response)
         return response
 
-    def err_response(self):
+    def _error_format(self) -> str:
+        with io.StringIO() as sio:
+            print_exc(file=sio)
+            error = sio.getvalue()
+        data: Dict[str, str] = {
+            'url': self.url,
+            'method': self.method,
+            'params': self.kwargs.setdefault('data', None),
+            'error': error,
+        }
+        return json.dumps(data, ensure_ascii=False)
+
+    def err_response(self, text: str):
         class Response:
-            text = ''
             error = True
             url = self.url
             status_code = 500
 
+            def __init__(self, text: str=''):
+                self.text = text
+
             def __repr__(self):
                 return 'Bad requests'
 
-        return Response
+        return Response(text)
 
     @classmethod
     def html_code(cls, response):
@@ -108,7 +132,7 @@ class Request(object):
     @property
     def doc(self):
         if not self._doc:
-            self._doc = Document(self.response)
+            self._doc = Document(self.text)
         return self._doc
 
     @property
@@ -117,8 +141,11 @@ class Request(object):
 
     @property
     def doc_summary(self) -> str:
-        content = etree.fromstring(self.doc.summary())
-        return ''.join(content.xpath('//text()'))
+        return ''.join(self.summary_html.xpath('//text()'))
+
+    @property
+    def summary_html(self):
+        return etree.fromstring(self.doc.summary())
 
     def __enter__(self):
         return self
