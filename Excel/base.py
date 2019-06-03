@@ -44,11 +44,12 @@ class OpenExcel(object):
         return d.get(self.methods, None)()
 
     def exit_methods(self):
-        d = {
-            ExcelMethods.WRITE: self.cursor.save(self.filename),
-            ExcelMethods.READ: self.cursor.close(),
-        }
-        return d.get(self.methods, None)
+        if self.methods == ExcelMethods.WRITE:
+            return self.cursor.save(self.filename)
+        elif self.methods == ExcelMethods.READ:
+            return self.cursor.close()
+        else:
+            return None
 
     def __enter__(self):
         return self.cursor
